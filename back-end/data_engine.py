@@ -16,6 +16,7 @@ from functools import lru_cache
 # ─── Reference parameters ─────────────────────────────────────────────────────
 NOMINAL = {
     "dga_h2_ppm":    {"mean": 30,  "std": 8},
+    "dga_c2h2_ppm":  {"mean": 2.0, "std": 0.8},
     "temp_huile_c":  {"mean": 65,  "std": 3},
     "vib_ms2":       {"mean": 1.2, "std": 0.3},
     "t_comm_ms":     {"mean": 68,  "std": 5},
@@ -24,6 +25,7 @@ NOMINAL = {
 
 THRESHOLDS = {
     "dga_h2_ppm":   {"nominal": 50,  "alarm": 100, "trip": 300, "warn": 50,  "critical": 100},
+    "dga_c2h2_ppm": {"nominal": 5,   "alarm": 30,  "trip": 100, "warn": 30,  "critical": 100},
     "temp_huile_c": {"nominal": 70,  "alarm": 80,  "trip": 95,  "warn": 75,  "critical": 85},
     "vib_ms2":      {"nominal": 2.0, "alarm": 4.0, "trip": 7.0, "warn": 2.0, "critical": 3.0},
     "t_comm_ms":    {"nominal": 80,  "alarm": 100, "trip": 150, "warn": 80,  "critical": 95},
@@ -32,6 +34,7 @@ THRESHOLDS = {
 
 PARAM_LABELS = {
     "dga_h2_ppm":   "DGA H₂",
+    "dga_c2h2_ppm": "DGA C₂H₂",
     "temp_huile_c": "Temp. Huile",
     "vib_ms2":      "Vibrations",
     "t_comm_ms":    "Temps Comm.",
@@ -40,6 +43,7 @@ PARAM_LABELS = {
 
 PARAM_ICONS = {
     "dga_h2_ppm":   "🔥",
+    "dga_c2h2_ppm": "⚗️",
     "temp_huile_c": "🌡️",
     "vib_ms2":      "📳",
     "t_comm_ms":    "⏱️",
@@ -48,6 +52,7 @@ PARAM_ICONS = {
 
 PARAM_UNITS = {
     "dga_h2_ppm":   "ppm",
+    "dga_c2h2_ppm": "ppm",
     "temp_huile_c": "°C",
     "vib_ms2":      "m/s²",
     "t_comm_ms":    "ms",
@@ -56,6 +61,7 @@ PARAM_UNITS = {
 
 HI_WEIGHTS = {
     "dga_h2_ppm":   0.35,
+    "dga_c2h2_ppm": 0.00,   # monitoring only — kept out of HI to preserve existing score
     "temp_huile_c": 0.20,
     "vib_ms2":      0.20,
     "t_comm_ms":    0.15,
@@ -65,7 +71,7 @@ HI_WEIGHTS = {
 FAULT_SCENARIOS = {
     "P1": {
         "date": "2022-07-27", "drift_weeks": 8,
-        "params": {"dga_h2_ppm": 3.5, "temp_huile_c": 0.8, "vib_ms2": 0.6, "t_comm_ms": 1.8},
+        "params": {"dga_h2_ppm": 3.5, "dga_c2h2_ppm": 5.0, "temp_huile_c": 0.8, "vib_ms2": 0.6, "t_comm_ms": 1.8},
         "description": "Décomposition thermique de l'huile — arc électrique",
         "severity": "Critique", "mwh_lost": 24.5,
     },
@@ -89,7 +95,7 @@ FAULT_SCENARIOS = {
     },
     "P5": {
         "date": "2017-07-01", "drift_weeks": 10,
-        "params": {"dga_h2_ppm": 4.0, "temp_huile_c": 1.5, "vib_ms2": 0.9},
+        "params": {"dga_h2_ppm": 4.0, "dga_c2h2_ppm": 3.0, "temp_huile_c": 1.5, "vib_ms2": 0.9},
         "description": "Surchauffe chronique — contamination huile",
         "severity": "Critique", "mwh_lost": 16.0,
     },
@@ -103,6 +109,23 @@ FAULT_SCENARIOS = {
 
 EQUIPMENT_LIST = ["PJ1", "PJ2", "PJ3", "PJ11"]
 EQUIPMENT_SEEDS = {"PJ1": 42, "PJ2": 43, "PJ3": 44, "PJ11": 45}
+
+# ─── Motor current parameters ─────────────────────────────────────────────────
+MOTOR_BASELINES = {  # Amperes — nameplate data per unit
+    "PJ1": 350,   # JANSEN V III Y
+    "PJ2": 350,   # JANSEN V III Y
+    "PJ3": 200,   # manufacturer unknown → estimated
+    "PJ11": 268,  # MR V III 350-Y-76-10
+    "PJ10": 134,  # MR V III 200Y
+}
+
+MOTOR_DRIFT_RATES = {  # A/month — slow linear degradation by unit age
+    "PJ1": 1.2,   # 1998 vintage, ~26 yrs → fastest contact wear
+    "PJ2": 0.8,
+    "PJ3": 0.8,
+    "PJ11": 0.5,  # 2007 vintage, 17 yrs
+    "PJ10": 0.3,
+}
 
 PERIOD_DELTAS = {
     "1h": timedelta(hours=1),
@@ -240,7 +263,8 @@ def generate_historical(
         data[param] = stats["mean"] + stats["std"] * noise + seasonal
 
     df = pd.DataFrame(data)
-    df["dga_h2_ppm"] = df["dga_h2_ppm"].clip(lower=0)
+    df["dga_h2_ppm"]   = df["dga_h2_ppm"].clip(lower=0)
+    df["dga_c2h2_ppm"] = df["dga_c2h2_ppm"].clip(lower=0)
     df["vib_ms2"] = df["vib_ms2"].clip(lower=0.1)
     df["vcc_v"] = df["vcc_v"].clip(lower=115)
     df["t_comm_ms"] = df["t_comm_ms"].clip(lower=55)
@@ -284,3 +308,89 @@ def filter_by_period(df: pd.DataFrame, period: str) -> pd.DataFrame:
         return df
     cutoff = df["timestamp"].max() - delta
     return df[df["timestamp"] >= cutoff].copy()
+
+
+@lru_cache(maxsize=8)
+def generate_motor_current(equipment: str) -> dict:
+    """
+    Generate motor current history (one sample per day) for an OLTC unit.
+
+    Motor current increases when: contacts are worn (higher resistance → more torque
+    needed), oil is too viscous (cold weather or degraded oil), mechanical components
+    are seizing, or the drive spring is weakening. A +30% current drift detected 4–8
+    weeks before failure was the missing precursor for faults P1 and P4
+    (PJ15, thermal trips 2017 & 2020).
+
+    Alert thresholds (IEC / MR recommendations):
+      Normal   : I_motor < baseline × 1.20
+      Warning  : baseline × 1.20 ≤ I_motor < baseline × 1.30
+      Critical : I_motor ≥ baseline × 1.30
+
+    Z-score anomaly: flag if |z| > 2.5 over a 30-day rolling window.
+    """
+    seed = EQUIPMENT_SEEDS.get(equipment, 42)
+    np.random.seed(seed)
+
+    baseline = float(MOTOR_BASELINES.get(equipment, 200))
+    drift_rate = MOTOR_DRIFT_RATES.get(equipment, 0.5)  # A/month
+
+    # Daily timeline from 2017-01-01 to today for full fault coverage
+    start_dt = pd.Timestamp("2017-01-01")
+    end_dt = pd.Timestamp(datetime.now().date())
+    ts_series = pd.date_range(start=start_dt, end=end_dt, freq="D")
+    n = len(ts_series)
+
+    # Slow linear drift: A/day = A/month ÷ 30
+    drift = np.arange(n, dtype=float) * (drift_rate / 30.0)
+
+    # Gaussian noise (~3% baseline) + winter viscosity seasonal
+    noise = np.random.normal(0.0, baseline * 0.03, n)
+    seasonal = baseline * 0.02 * np.sin(2.0 * np.pi * np.arange(n) / 365.25)
+
+    currents = baseline + drift + noise + seasonal
+    currents = np.maximum(currents, baseline * 0.5)
+
+    # Vectorised rolling z-score (30-day window)
+    s = pd.Series(currents)
+    roll_mean = s.rolling(window=30, min_periods=2).mean().bfill()
+    roll_std = s.rolling(window=30, min_periods=2).std().bfill().fillna(1e-9)
+    z_scores = ((s - roll_mean) / (roll_std + 1e-9)).values
+    is_anomaly = np.abs(z_scores) > 2.5
+
+    # Trend slope from last 180 days
+    tail = min(180, n)
+    slope_per_day = float(np.polyfit(np.arange(tail, dtype=float), currents[n - tail:], 1)[0])
+    trend_slope_A_per_month = slope_per_day * 30.0
+
+    last_val = float(currents[-1])
+    if last_val >= baseline * 1.30:
+        alert_level = "critical"
+    elif last_val >= baseline * 1.20:
+        alert_level = "warning"
+    else:
+        alert_level = "normal"
+
+    # Anomaly count for the last 90 days
+    anomaly_count_90d = int(is_anomaly[max(0, n - 90):].sum())
+
+    history = [
+        {
+            "timestamp": str(ts.date()),
+            "current_A": round(float(c), 3),
+            "commutation_index": int(i + 1),
+            "z_score": round(float(z), 4),
+            "is_anomaly": bool(a),
+        }
+        for i, (ts, c, z, a) in enumerate(zip(ts_series, currents, z_scores, is_anomaly))
+    ]
+
+    return {
+        "equipment_id": equipment,
+        "baseline_current_A": baseline,
+        "nominal_current_A": baseline,
+        "history": history,
+        "mean_per_commutation": round(float(currents.mean()), 2),
+        "trend_slope_A_per_month": round(trend_slope_A_per_month, 3),
+        "alert_level": alert_level,
+        "anomaly_count_last_90d": anomaly_count_90d,
+    }

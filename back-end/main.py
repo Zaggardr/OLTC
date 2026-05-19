@@ -160,6 +160,33 @@ def anomaly_detection_report(equipment: str, freq_hours: int = Query(6, ge=1, le
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Motor current surveillance
+# ─────────────────────────────────────────────────────────────────────────────
+@app.get("/api/motor/{equipment_id}", response_model=S.MotorCurrentResponse, tags=["data"])
+def motor_current(equipment_id: str):
+    """
+    Motor current per commutation for a given OLTC unit.
+
+    Motor current increases when: contacts are worn (higher resistance → more torque
+    needed), oil is too viscous (cold weather or degraded oil), mechanical components
+    are seizing, or the drive spring is weakening. A +30% current drift detected 4–8
+    weeks before failure was the missing precursor for faults P1 and P4
+    (PJ15, thermal trips 2017 & 2020).
+
+    Alert thresholds (IEC / MR recommendations):
+      normal   : I_motor < baseline × 1.20
+      warning  : baseline × 1.20 ≤ I_motor < baseline × 1.30
+      critical : I_motor ≥ baseline × 1.30
+    """
+    if equipment_id not in eng.EQUIPMENT_LIST:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Unknown equipment '{equipment_id}'. Allowed: {eng.EQUIPMENT_LIST}",
+        )
+    return eng.generate_motor_current(equipment_id)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Forecast
 # ─────────────────────────────────────────────────────────────────────────────
 @app.get("/api/forecast/{equipment}", response_model=S.ForecastResponse, tags=["ml"])

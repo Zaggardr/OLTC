@@ -163,6 +163,12 @@ def get_forecast(equipment: str, days: int = 60, freq_hours: int = 6) -> dict:
                 {"days": days, "freq_hours": freq_hours})
 
 
+@st.cache_data(ttl=300, show_spinner="Chargement courant moteur…")
+def get_motor_data(equipment_id: str) -> dict:
+    """Fetch motor current surveillance data for the given OLTC unit (cached 5 min)."""
+    return _get(f"/api/motor/{equipment_id}")
+
+
 # ─── Pure helpers (replicated locally to avoid an HTTP round-trip per tick) ──
 def get_status(hi: float) -> tuple[str, str]:
     if hi >= 80: return "Normal", "🟢"

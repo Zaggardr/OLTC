@@ -107,6 +107,9 @@ def _build_work_order(equipment: str, alert_date, crit_date) -> dict[str, Any] |
         return None
     days_to_alert = int((alert_date - pd.Timestamp.now()).days)
     urgent = days_to_alert <= 14
+    year = alert_date.year
+    month = alert_date.month
+    sap_order = f"PM-{equipment}-{year}{month:02d}-{'URG' if urgent else 'PREV'}"
     return {
         "equipment": f"OLTC-{equipment}",
         "type": "urgent" if urgent else "preventive",
@@ -115,4 +118,5 @@ def _build_work_order(equipment: str, alert_date, crit_date) -> dict[str, Any] |
         "days_until_alert": days_to_alert,
         "critical_date": crit_date.date().isoformat() if crit_date is not None else None,
         "action": "Inspection OLTC + analyse DGA + mesure t_comm",
+        "sap_pm_order": sap_order,
     }

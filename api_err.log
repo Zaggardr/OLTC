@@ -1,0 +1,10 @@
+Importing plotly failed. Interactive plots will not work.
+INFO:     Will watch for changes in these directories: ['C:\\Users\\AichaELADMI\\OLTC\\back-end']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [24876] using WatchFiles
+Importing plotly failed. Interactive plots will not work.
+INFO:     Started server process [17788]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+17:13:03 - cmdstanpy - INFO - Chain [1] start processing
+17:13:05 - cmdstanpy - INFO - Chain [1] done processing

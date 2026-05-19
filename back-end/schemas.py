@@ -50,6 +50,7 @@ class FaultInfo(BaseModel):
 class MeasurementPoint(BaseModel):
     timestamp: datetime
     dga_h2_ppm: float
+    dga_c2h2_ppm: float
     temp_huile_c: float
     vib_ms2: float
     t_comm_ms: float
@@ -73,6 +74,7 @@ class HistoricalResponse(BaseModel):
 class LatestPoint(BaseModel):
     timestamp: datetime
     dga_h2_ppm: float
+    dga_c2h2_ppm: float
     temp_huile_c: float
     vib_ms2: float
     t_comm_ms: float
@@ -117,6 +119,7 @@ class WorkOrder(BaseModel):
     days_until_alert: int
     critical_date: Optional[str]
     action: str
+    sap_pm_order: Optional[str] = None
 
 
 class ForecastResponse(BaseModel):
@@ -130,3 +133,22 @@ class ForecastResponse(BaseModel):
     historical: list[dict]
     forecast: list[ForecastPoint]
     work_order: Optional[WorkOrder]
+
+
+class MotorCurrentPoint(BaseModel):
+    timestamp: str
+    current_A: float
+    commutation_index: int
+    z_score: float
+    is_anomaly: bool
+
+
+class MotorCurrentResponse(BaseModel):
+    equipment_id: str
+    baseline_current_A: float
+    nominal_current_A: float
+    history: list[MotorCurrentPoint]
+    mean_per_commutation: float
+    trend_slope_A_per_month: float
+    alert_level: Literal["normal", "warning", "critical"]
+    anomaly_count_last_90d: int
