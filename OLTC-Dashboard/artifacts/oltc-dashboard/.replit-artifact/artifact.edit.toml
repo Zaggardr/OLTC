@@ -1,0 +1,12 @@
+kind = "web"
+previewPath = "/"
+title = "OLTC Dashboard"
+version = "1.0.0"
+
+[[services]]
+localPort = 5000
+name = "OLTC Dashboard"
+paths = ["/"]
+
+[services.development]
+run = "cd artifacts/oltc-dashboard && streamlit run app.py --server.port 5000"

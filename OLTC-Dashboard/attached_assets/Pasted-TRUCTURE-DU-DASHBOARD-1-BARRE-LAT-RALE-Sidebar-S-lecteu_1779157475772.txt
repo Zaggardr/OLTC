@@ -1,0 +1,53 @@
+TRUCTURE DU DASHBOARD
+1. BARRE LATÉRALE (Sidebar)
+Sélecteur d'équipement : PJ1, PJ2, PJ3, PJ11 (PJ1 par défaut)
+Sélecteur de période : Dernière heure, 24h, 7j, 30j, 1 an, Tout
+Bouton refresh : Re-générer les données temps réel simulées
+Informations système : Version, dernière mise à jour
+2. EN-TÊTE (Header)
+Titre : "🔧 OLTC Predictive Maintenance — Terminal Slurry Pipeline"
+Sous-titre avec équipement sélectionné et statut global
+Horloge temps réel actualisée toutes les secondes
+3. LIGNE DE KPI (4-5 cartes metrics)
+Crée des cartes colorées avec indicateurs visuels :
+Table
+KPI	Valeur	Seuils de couleur
+Health Index	XX %	Vert >80, Orange 60-80, Rouge <60
+Statut	Normal/Surveillance/Alerte/Critique	Badge coloré
+Score Anomalie IF	X.XX	Vert <0.47, Orange 0.47-0.60, Rouge >0.60
+Dernière panne	P1 — 27/07/2022	Texte neutre
+MWh évités (simulé)	62.46 MWh	Vert
+4. SECTION GRAPHIQUE PRINCIPALE (2 colonnes)
+Colonne gauche (60%) :
+Graphique Health Index temporel : Courbe avec zones colorées (vert/orange/rouge)
+Marqueurs verticaux aux dates des 6 pannes (P1-P6)
+Seuils horizontaux : 60% (alerte) et 40% (critique)
+Tooltip interactif : Valeur + date au survol
+Colonne droite (40%) :
+Jauge circulaire (Gauge) : Health Index actuel avec aiguille dynamique
+Barre de progression : Distance par rapport au seuil critique
+5. SECTION CAPTEURS EN TEMPS RÉEL (5 cartes en grille)
+Une carte par capteur avec :
+Valeur actuelle en grand
+Tendance sparkline (mini-graphique des 50 dernières valeurs)
+Indicateur couleur : Vert (normal), Orange (attention), Rouge (danger)
+Seuils affichés : Nominal / Alarme / Trip
+Capteurs :
+🔥 DGA H₂ — [XX ppm] — Seuil CEI : 50/100/300 ppm
+🌡️ Température Huile — [XX °C] — Seuil : 70/80/95 °C
+📳 Vibrations — [XX m/s²] — Seuil : 2/4/7 m/s²
+⏱️ Temps Commutation — [XX ms] — Seuil : 80/100/150 ms
+⚡ Tension 127 Vcc — [XX V] — Seuil : 115/110/95 V
+6. SECTION TABLEAU DE BORD INFÉRIEUR (2 colonnes)
+Colonne gauche : Tableau des pannes historiques
+Table
+Panne	Date	MWh perdus	HI panne	Avance détection	Statut
+P5	01/07/2017	16.0	99%	67j	✅ Évitée
+Colonne droite : Log d'alertes temps réel
+Liste déroulante des dernières alertes avec timestamp
+Niveau : INFO / WARNING / CRITICAL
+Message : "Score IF = 0.72 — Anomalie détectée sur t_comm"
+7. SECTION ANALYSE (onglet ou expander)
+Graphique Isolation Forest : Score d'anomalie sur le temps
+Graphique multi-capteurs : Tous les paramètres normalisés sur un même graphe
+Distribution des scores HI : Histogramme avec répartition des statuts
