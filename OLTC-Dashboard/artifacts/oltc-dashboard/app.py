@@ -718,8 +718,8 @@ def build_normalized_multicapteur(df: pd.DataFrame, motor_data=None) -> go.Figur
     palette = [ACCENT_BRIGHT, C_CRIT, C_INFO, C_WARN]
     sample = df.iloc[:: max(1, len(df) // 500)]
 
-    # 4 IoT sensors — skip vcc_v (replaced by motor current)
-    sensor_params = [p for p in api.NOMINAL.keys() if p != "vcc_v"]
+    # 4 IoT sensors — skip vcc_v (replaced by motor current) and dga_c2h4_ppm (internal only)
+    sensor_params = [p for p in api.NOMINAL.keys() if p not in ("vcc_v", "dga_c2h4_ppm")]
     for i, param in enumerate(sensor_params):
         nom = api.NOMINAL[param]["mean"]
         std = api.NOMINAL[param]["std"]
@@ -857,8 +857,8 @@ def render_kpi_row(hi_now, status_label, if_score_now, last_fault_key, last_faul
 
 def render_sensor_grid(current_vals, spark_data, motor_data=None):
     cols = st.columns(6)
-    # Display IoT sensors (skip vcc_v — replaced by motor current in last column)
-    display_params = [p for p in api.NOMINAL.keys() if p != "vcc_v"]
+    # Display IoT sensors (skip vcc_v and dga_c2h4_ppm — internal only, not shown in grid)
+    display_params = [p for p in api.NOMINAL.keys() if p not in ("vcc_v", "dga_c2h4_ppm")]
 
     for i, param in enumerate(display_params):
         val = current_vals.get(param, api.NOMINAL[param]["mean"])
@@ -1166,6 +1166,185 @@ def build_forecast_chart(fc: dict) -> go.Figure:
 # ═══════════════════════════════════════════════════════════════════════════════
 # TAB RENDERERS
 # ═══════════════════════════════════════════════════════════════════════════════
+
+def render_tab_diagnostic(equipment: str):
+    """🧪 Diagnostic CIGRE — 18 indicateurs IEC/CIGRE TB 543."""
+
+    STATUS_LABEL = {"normal": "Normal", "warning": "Alerte", "critical": "Critique"}
+    STATUS_COLOR = {"normal": C_OK, "warning": C_WARN, "critical": C_CRIT}
+    STATUS_ICON  = {"normal": "●", "warning": "▲", "critical": "◆"}
+
+    try:
+        report = api.get_diagnostic(equipment)
+    except Exception as e:
+        st.error(f"Impossible de charger le diagnostic CIGRE : {e}")
+        return
+
+    indicators = report["indicators"]
+    g_status   = report["global_status"]
+    n_warn     = report["warning_count"]
+    n_crit     = report["critical_count"]
+    n_ok       = len(indicators) - n_warn - n_crit
+    g_color    = STATUS_COLOR[g_status]
+
+    # ── Banner ────────────────────────────────────────────────────────────────
+    st.markdown(f"""
+    <div style="background:linear-gradient(90deg,{g_color}22,transparent);
+                border:1px solid {g_color}55;border-left:4px solid {g_color};
+                border-radius:6px;padding:14px 20px;margin-bottom:18px;
+                display:flex;align-items:center;gap:16px">
+        <div style="font-size:28px">{STATUS_ICON[g_status]}</div>
+        <div>
+            <div style="font-size:13px;font-weight:800;color:{g_color};
+                        text-transform:uppercase;letter-spacing:0.12em">
+                Diagnostic CIGRE — {equipment} · État {STATUS_LABEL[g_status]}
+            </div>
+            <div style="font-size:11px;color:{TEXT_SECONDARY};margin-top:3px">
+                {n_ok} indicateurs normaux &nbsp;·&nbsp;
+                <span style="color:{C_WARN}">{n_warn} alertes</span> &nbsp;·&nbsp;
+                <span style="color:{C_CRIT}">{n_crit} critiques</span>
+                &nbsp;·&nbsp; CIGRE TB 543 / IEC 60599:2022
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── Summary bar ───────────────────────────────────────────────────────────
+    total = len(indicators)
+    pct_ok   = n_ok   / total * 100
+    pct_warn = n_warn / total * 100
+    pct_crit = n_crit / total * 100
+    st.markdown(f"""
+    <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;margin-bottom:20px;gap:2px">
+        <div style="width:{pct_ok:.1f}%;background:{C_OK};border-radius:4px 0 0 4px"></div>
+        <div style="width:{pct_warn:.1f}%;background:{C_WARN}"></div>
+        <div style="width:{pct_crit:.1f}%;background:{C_CRIT};border-radius:0 4px 4px 0"></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── Group indicators into rows of 3 ───────────────────────────────────────
+    GROUPS = [
+        ("🌡️ Thermique", ["temp_huile", "delta_t", "drift_temp"]),
+        ("⚗️ DGA — Gaz dissous", ["c2h2", "rogers", "rate_c2h2"]),
+        ("🔥 Hydrogène & Comm.", ["h2", "t_comm_abs", "t_comm_rel"]),
+        ("⏱️ Mécanique & Moteur", ["t_comm_var", "motor_ratio", "energy_mech"]),
+        ("📳 Vibrations & Huile", ["energy_vib", "vib_corr", "moisture"]),
+        ("🏥 État Global", ["rigidity", "hi", "days_crit"]),
+    ]
+    by_id = {ind["id"]: ind for ind in indicators}
+
+    for group_title, ids in GROUPS:
+        st.markdown(
+            f'<div style="font-size:11px;color:{TEXT_SECONDARY};text-transform:uppercase;'
+            f'letter-spacing:0.1em;font-weight:700;margin:16px 0 8px 0;'
+            f'border-bottom:1px solid {BORDER};padding-bottom:5px">{group_title}</div>',
+            unsafe_allow_html=True,
+        )
+        cols = st.columns(3)
+        for col, iid in zip(cols, ids):
+            ind = by_id.get(iid)
+            if ind is None:
+                continue
+            sc  = STATUS_COLOR[ind["status"]]
+            sl  = STATUS_LABEL[ind["status"]]
+            si  = STATUS_ICON[ind["status"]]
+            val = ind["value"]
+            # Format value nicely
+            if ind["unit"] in ("", "×"):
+                val_str = f"{val:.3f}"
+            elif ind["unit"] == "j" and val >= 999:
+                val_str = "> 999"
+            elif ind["unit"] == "%":
+                val_str = f"{val:.1f}"
+            else:
+                val_str = f"{val:.2f}"
+
+            with col:
+                st.markdown(f"""
+                <div style="background:{SURFACE};border:1px solid {BORDER};
+                            border-top:3px solid {sc};border-radius:6px;
+                            padding:14px 15px;margin-bottom:4px;min-height:148px">
+                    <div style="font-size:10px;color:{TEXT_SECONDARY};text-transform:uppercase;
+                                letter-spacing:0.09em;font-weight:600;margin-bottom:6px">
+                        {ind['name']}
+                    </div>
+                    <div style="font-size:26px;font-weight:800;color:{sc};line-height:1.1">
+                        {val_str}
+                        <span style="font-size:13px;color:{TEXT_SECONDARY};font-weight:400">
+                            &nbsp;{ind['unit']}
+                        </span>
+                    </div>
+                    <div style="margin-top:7px">
+                        <span style="background:{sc}22;color:{sc};font-size:10px;font-weight:700;
+                                     padding:2px 8px;border-radius:99px;border:1px solid {sc}55">
+                            {si} {sl}
+                        </span>
+                    </div>
+                    <div style="margin-top:9px;font-size:9.5px;color:{TEXT_MUTED};line-height:1.6">
+                        <span style="color:{C_OK}">✓</span> {ind['normal_range']}&nbsp;&nbsp;
+                        <span style="color:{C_WARN}">▲</span> {ind['alert_range']}&nbsp;&nbsp;
+                        <span style="color:{C_CRIT}">◆</span> {ind['critical_range']}
+                    </div>
+                    <div style="margin-top:4px;font-size:9px;color:{TEXT_MUTED}">
+                        {ind['norm']}
+                    </div>
+                    {(lambda nc: f'<div style="margin-top:6px;font-size:8.5px;color:{"#F59E0B" if nc=="warn" else "#EF4444" if nc=="crit" else TEXT_MUTED};font-style:italic;line-height:1.4;border-top:1px solid {BORDER};padding-top:5px">{ind["note"]}</div>')(ind.get("note_color","muted")) if ind.get("note") else ""}
+                </div>
+                """, unsafe_allow_html=True)
+
+    # ── Radar chart ───────────────────────────────────────────────────────────
+    st.markdown(f'<div style="margin-top:22px;font-size:11px;color:{TEXT_SECONDARY};'
+                f'text-transform:uppercase;letter-spacing:0.1em;font-weight:700;'
+                f'border-bottom:1px solid {BORDER};padding-bottom:5px;margin-bottom:12px">'
+                f'Vue Radar — Score normalisé par indicateur</div>',
+                unsafe_allow_html=True)
+
+    # Build normalized 0-100 score per indicator (100=normal, 0=critical)
+    def _norm_score(ind: dict) -> float:
+        s = ind["status"]
+        return 100.0 if s == "normal" else (50.0 if s == "warning" else 10.0)
+
+    radar_labels = [ind["name"] for ind in indicators]
+    radar_values = [_norm_score(ind) for ind in indicators]
+    radar_colors_fill = [STATUS_COLOR[ind["status"]] for ind in indicators]
+
+    fig_radar = go.Figure()
+    fig_radar.add_trace(go.Scatterpolar(
+        r=radar_values + [radar_values[0]],
+        theta=radar_labels + [radar_labels[0]],
+        fill="toself",
+        fillcolor=f"rgba(0,133,66,0.15)",
+        line=dict(color=ACCENT_BRIGHT, width=2),
+        mode="lines+markers",
+        marker=dict(
+            color=[STATUS_COLOR[ind["status"]] for ind in indicators] + [STATUS_COLOR[indicators[0]["status"]]],
+            size=8,
+        ),
+        hovertemplate="<b>%{theta}</b><br>Score: %{r:.0f}<extra></extra>",
+    ))
+    fig_radar.update_layout(
+        polar=dict(
+            bgcolor="rgba(0,0,0,0)",
+            radialaxis=dict(
+                visible=True, range=[0, 110],
+                tickfont=dict(color=TEXT_MUTED, size=8),
+                gridcolor=BORDER, linecolor=BORDER,
+                tickvals=[0, 50, 100],
+                ticktext=["Critique", "Alerte", "Normal"],
+            ),
+            angularaxis=dict(
+                tickfont=dict(color=TEXT_SECONDARY, size=9),
+                linecolor=BORDER, gridcolor=BORDER,
+            ),
+        ),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        height=480,
+        margin=dict(l=60, r=60, t=30, b=30),
+        showlegend=False,
+    )
+    st.plotly_chart(fig_radar, use_container_width=True, config={"displayModeBar": False})
+
 
 def render_tab_parc_oltc():
     """🔧 Parc OLTC — Fleet inventory, bubble chart, arc energy formula."""
@@ -1540,7 +1719,7 @@ def main():
         </div>
         """, unsafe_allow_html=True)
 
-        equipment = st.selectbox("Équipement", api.EQUIPMENT_LIST, index=0)
+        equipment = st.selectbox("Postes", api.EQUIPMENT_LIST, index=0)
         period    = st.selectbox("Période", list(PERIOD_OPTIONS.keys()), index=5)
 
         st.markdown(f'<hr style="border-color:{BORDER};margin:14px 0">', unsafe_allow_html=True)
@@ -1737,13 +1916,14 @@ def main():
 
     # ── ANALYSIS SECTION ─────────────────────────────────────────────────────
     st.markdown('<div class="section-title">Analyse approfondie</div>', unsafe_allow_html=True)
-    tab_if, tab_multi, tab_dist, tab_parc, tab_moteur, tab_prophet = st.tabs([
+    tab_if, tab_multi, tab_dist, tab_parc, tab_moteur, tab_prophet, tab_diag = st.tabs([
         "Isolation Forest",
         "Multi-capteurs (z-score)",
         "Distribution HI",
         "🔧 Parc OLTC",
         "⚡ Moteur OLTC",
         "🔮 Prévision Prophet",
+        "🧪 Diagnostic CIGRE",
     ])
 
     with tab_if:
@@ -1804,6 +1984,10 @@ def main():
     # ── TAB: PRÉVISION PROPHET ───────────────────────────────────────────────
     with tab_prophet:
         render_tab_prevision_prophet(equipment)
+
+    # ── TAB: DIAGNOSTIC CIGRE ────────────────────────────────────────────────
+    with tab_diag:
+        render_tab_diagnostic(equipment)
 
     # Footer
     st.markdown(f"""

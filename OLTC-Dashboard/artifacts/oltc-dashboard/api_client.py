@@ -169,6 +169,12 @@ def get_motor_data(equipment_id: str) -> dict:
     return _get(f"/api/motor/{equipment_id}")
 
 
+@st.cache_data(ttl=60, show_spinner="Calcul diagnostic CIGRE…")
+def get_diagnostic(equipment_id: str) -> dict:
+    """Fetch the 18 CIGRE/IEC diagnostic indicators for the given OLTC unit (cached 60 s)."""
+    return _get(f"/api/diagnostic/{equipment_id}")
+
+
 # ─── Pure helpers (replicated locally to avoid an HTTP round-trip per tick) ──
 def get_status(hi: float) -> tuple[str, str]:
     if hi >= 80: return "Normal", "🟢"

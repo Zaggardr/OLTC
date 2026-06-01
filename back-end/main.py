@@ -187,6 +187,16 @@ def motor_current(equipment_id: str):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# CIGRE Diagnostic
+# ─────────────────────────────────────────────────────────────────────────────
+@app.get("/api/diagnostic/{equipment}", response_model=S.DiagnosticReport, tags=["ml"])
+def cigre_diagnostic(equipment: str):
+    """Compute 18 CIGRE TB 543 / IEC diagnostic indicators for an OLTC unit."""
+    _validate_equipment(equipment)
+    return eng.compute_diagnostic(equipment)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Forecast
 # ─────────────────────────────────────────────────────────────────────────────
 @app.get("/api/forecast/{equipment}", response_model=S.ForecastResponse, tags=["ml"])

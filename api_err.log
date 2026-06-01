@@ -8,3 +8,103 @@ INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 17:13:03 - cmdstanpy - INFO - Chain [1] start processing
 17:13:05 - cmdstanpy - INFO - Chain [1] done processing
+13:24:14 - cmdstanpy - INFO - Chain [1] start processing
+13:24:16 - cmdstanpy - INFO - Chain [1] done processing
+WARNING:  WatchFiles detected changes in 'data_engine.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [17788]
+WARNING:  WatchFiles detected changes in 'data_engine.py'. Reloading...
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    from multiprocessing.spawn import spawn_main; spawn_main(parent_pid=24876, pipe_handle=1088)
+                                                  ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\AichaELADMI\AppData\Local\Programs\Python\Python314\Lib\multiprocessing\spawn.py", line 122, in spawn_main
+    exitcode = _main(fd, parent_sentinel)
+  File "C:\Users\AichaELADMI\AppData\Local\Programs\Python\Python314\Lib\multiprocessing\spawn.py", line 131, in _main
+    prepare(preparation_data)
+    ~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "C:\Users\AichaELADMI\AppData\Local\Programs\Python\Python314\Lib\multiprocessing\spawn.py", line 246, in prepare
+    _fixup_main_from_path(data['init_main_from_path'])
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\AichaELADMI\AppData\Local\Programs\Python\Python314\Lib\multiprocessing\spawn.py", line 297, in _fixup_main_from_path
+    main_content = runpy.run_path(main_path,
+                                  run_name="__mp_main__")
+  File "<frozen runpy>", line 294, in run_path
+  File "<frozen runpy>", line 98, in _run_module_code
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\AichaELADMI\OLTC\back-end\main.py", line 14, in <module>
+    from fastapi import FastAPI, HTTPException, Query
+  File "C:\Users\AichaELADMI\OLTC\back-end\venv\Lib\site-packages\fastapi\__init__.py", line 7, in <module>
+    from .applications import FastAPI as FastAPI
+  File "C:\Users\AichaELADMI\OLTC\back-end\venv\Lib\site-packages\fastapi\applications.py", line 6, in <module>
+    from fastapi import routing
+  File "C:\Users\AichaELADMI\OLTC\back-end\venv\Lib\site-packages\fastapi\routing.py", line 35, in <module>
+    from fastapi import params
+  File "C:\Users\AichaELADMI\OLTC\back-end\venv\Lib\site-packages\fastapi\params.py", line 7, in <module>
+    from fastapi.exceptions import FastAPIDeprecationWarning
+  File "C:\Users\AichaELADMI\OLTC\back-end\venv\Lib\site-packages\fastapi\exceptions.py", line 157, in <module>
+    RequestErrorModel: type[BaseModel] = create_model("Request")
+                                         ~~~~~~~~~~~~^^^^^^^^^^^
+  File "C:\Users\AichaELADMI\OLTC\back-end\venv\Lib\site-packages\pydantic\main.py", line 1828, in create_model
+    return meta(
+        model_name,
+    ...<4 lines>...
+        **kwds,
+    )
+  File "C:\Users\AichaELADMI\OLTC\back-end\venv\Lib\site-packages\pydantic\_internal\_model_construction.py", line 256, in __new__
+    complete_model_class(
+    ~~~~~~~~~~~~~~~~~~~~^
+        cls,
+        ^^^^
+    ...<3 lines>...
+        create_model_module=_create_model_module,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\AichaELADMI\OLTC\back-end\venv\Lib\site-packages\pydantic\_internal\_model_construction.py", line 690, in complete_model_class
+    cls.__pydantic_validator__ = create_schema_validator(
+                                 ~~~~~~~~~~~~~~~~~~~~~~~^
+        schema,
+        ^^^^^^^
+    ...<6 lines>...
+        _use_prebuilt=not is_force_rebuild,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\AichaELADMI\OLTC\back-end\venv\Lib\site-packages\pydantic\plugin\_schema_validator.py", line 40, in create_schema_validator
+    plugins = get_plugins()
+  File "C:\Users\AichaELADMI\OLTC\back-end\venv\Lib\site-packages\pydantic\plugin\_loader.py", line 40, in get_plugins
+    for entry_point in dist.entry_points:
+                       ^^^^^^^^^^^^^^^^^
+  File "C:\Users\AichaELADMI\AppData\Local\Programs\Python\Python314\Lib\importlib\metadata\__init__.py", line 496, in entry_points
+    return EntryPoints._from_text_for(self.read_text('entry_points.txt'), self)
+                                      ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\AichaELADMI\AppData\Local\Programs\Python\Python314\Lib\importlib\metadata\__init__.py", line 915, in read_text
+    return self._path.joinpath(filename).read_text(encoding='utf-8')
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "C:\Users\AichaELADMI\AppData\Local\Programs\Python\Python314\Lib\pathlib\__init__.py", line 787, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\AichaELADMI\AppData\Local\Programs\Python\Python314\Lib\pathlib\__init__.py", line 771, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen codecs>", line 312, in __init__
+KeyboardInterrupt
+Importing plotly failed. Interactive plots will not work.
+INFO:     Started server process [1772]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+01:35:42 - cmdstanpy - INFO - Chain [1] start processing
+01:35:44 - cmdstanpy - INFO - Chain [1] done processing
+WARNING:  WatchFiles detected changes in 'data_engine.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [1772]
+Importing plotly failed. Interactive plots will not work.
+INFO:     Started server process [26980]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'schemas.py'. Reloading...

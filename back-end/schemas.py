@@ -51,6 +51,7 @@ class MeasurementPoint(BaseModel):
     timestamp: datetime
     dga_h2_ppm: float
     dga_c2h2_ppm: float
+    dga_c2h4_ppm: float
     temp_huile_c: float
     vib_ms2: float
     t_comm_ms: float
@@ -75,6 +76,7 @@ class LatestPoint(BaseModel):
     timestamp: datetime
     dga_h2_ppm: float
     dga_c2h2_ppm: float
+    dga_c2h4_ppm: float
     temp_huile_c: float
     vib_ms2: float
     t_comm_ms: float
@@ -152,3 +154,25 @@ class MotorCurrentResponse(BaseModel):
     trend_slope_A_per_month: float
     alert_level: Literal["normal", "warning", "critical"]
     anomaly_count_last_90d: int
+
+
+class DiagnosticIndicator(BaseModel):
+    id: str
+    name: str
+    value: float
+    unit: str
+    status: Literal["normal", "warning", "critical"]
+    normal_range: str
+    alert_range: str
+    critical_range: str
+    norm: str
+    note: Optional[str] = ""
+    note_color: Optional[str] = "muted"
+
+
+class DiagnosticReport(BaseModel):
+    equipment: str
+    indicators: list[DiagnosticIndicator]
+    global_status: Literal["normal", "warning", "critical"]
+    warning_count: int
+    critical_count: int
